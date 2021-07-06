@@ -10,19 +10,82 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
-}
+  const { username } = request.headers; // Recebendo o username pelo header do request.
+
+  if(!username) {
+    return response.status(400).json({ error: "username is required" });
+  }; // Verificando se existe username, caso não existir irá enviar uma mensagem de erro.
+
+  const user = users.find((user) => user.username === username); // Procurando usuários existentes através do username.
+
+  if(!user) {
+    return response.status(404).json({error: "User not found"}); 
+  }; // Caso o username passado pelo header da requisição não pertença a nenhum usuário, irá receber uma mensagem de error.
+
+  request.user = user; // Se o usuário tiver um nome existente, ele irá para dentro do request e ser repassado para outras rotas;
+
+  return next(); // O next está dando prosseguimento para as funções nas quais estão chamando o Middleware.
+};
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
-}
+  const { user } = request; // recebendo o objeto user da request;   
+
+  if (!user.pro && user.todos.length < 10 ) {
+    return next();
+
+  } else if (user.pro) {
+    return next();
+
+  } else {
+    return response.status(403).json({ error: "Update your plan!" });
+  }; // a função next será chamada somente no caso do usuário estar no plano grátis e ainda não possuir 10 todos cadastrados ou se ele já estiver com o plano Pro ativado.
+
+};
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers; // recebendo o username pelo header
+  const { id } = request.params; // recebendo o id pelo params
+
+  const user = users.find((user) => user.username === username); // Validando se o usuário existe.
+
+  if (!user) {
+    return response.status(404).json({ error: "User not found" });
+  };
+
+  const idExist = validate(id); // Validando se o id é uuid com a função "validate"
+
+  if (!idExist) {
+    return response.status(400).json({ error: "Id invalid" });
+  };
+
+  const todo = user.todos.find((todo) => todo.id === id); //Verificando se o id pertence a um todo.
+
+  if (!todo) return response.status(404).json({ error: "Todo not found" });
+
+  request.todo = todo; // Caso o todo passe, ele irá para dentro do request.todo;
+  request.user = user; // Se o usuário passar, ele irá para dentro do request.user e podendo ser chamando em outras funções, o mesmo para o todo encontrado.
+
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params; // Recebendo o id de um usuário de dentro do params.
+
+  if (!id) {
+    return response.status((400).json({ error: "Id is required" }));
+  }; // Caso o id passado pela requisição não pertença a nenhum usuário será enviado mensagem de erro. 
+
+  const user = users.find((user) => user.id === id); // Verificando se o usuário existe;
+
+  if (!user) {
+    return response.status(404).json({ error: "User not found" });
+  };
+  
+
+  request.user = user;
+
+  return next();
+
 }
 
 app.post('/users', (request, response) => {
